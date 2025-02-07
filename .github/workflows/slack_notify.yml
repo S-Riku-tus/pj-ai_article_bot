@@ -17,7 +17,7 @@ jobs:
           python-version: "3.9"
 
       - name: 依存関係をインストール
-        run: pip install slack-sdk requests schedule
+        run: pip install -r requirements.txt
 
       - name: Qiita 通知スクリプトを実行
         env:
