@@ -22,5 +22,6 @@ jobs:
       - name: Qiita 通知スクリプトを実行
         env:
           SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
-          CHANNEL_ID: ${{ secrets.SLACK_CHANNEL }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+          API_TOKEN: ${{ secrets.API_TOKEN }}
         run: python bot.py

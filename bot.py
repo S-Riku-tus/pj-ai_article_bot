@@ -10,12 +10,12 @@ load_dotenv()
 
 # .envファイルからトークンとIDを取得
 SLACK_TOKEN = os.environ.get("SLACK_TOKEN")
-CHANNEL_ID = os.environ.get("CHANNEL_ID")
+SLACK_CHANNEL = os.environ.get("SLACK_CHANNEL")
 API_TOKEN = os.environ.get("API_TOKEN")
 
 # トークンとIDが設定されているか確認
-if not SLACK_TOKEN or not CHANNEL_ID or not API_TOKEN:
-    raise ValueError("SLACK_TOKEN, CHANNEL_ID, and API_TOKEN environment variables must be set.")
+if not SLACK_TOKEN or not SLACK_CHANNEL or not API_TOKEN:
+    raise ValueError("SLACK_TOKEN, SLACK_CHANNEL, and API_TOKEN environment variables must be set.")
 
 
 # Qiitaから最新3つの記事を取得する関数
@@ -85,7 +85,7 @@ def notify_articles_to_slack(channel_id, api_token, tag='AI'):
 
 
 # 毎日8:30に実行
-schedule.every().day.at("04:30").do(lambda: notify_articles_to_slack(CHANNEL_ID, API_TOKEN))
+schedule.every().day.at("04:30").do(lambda: notify_articles_to_slack(SLACK_CHANNEL, API_TOKEN))
 
 
 while True:
