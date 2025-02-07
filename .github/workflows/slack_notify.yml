@@ -22,5 +22,5 @@ jobs:
       - name: Qiita 通知スクリプトを実行
         env:
           SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
-          CHANNEL_ID: "#general"  # ここを適切なチャンネルに変更
+          CHANNEL_ID: "#最新記事タイムライン"  # ここを適切なチャンネルに変更
         run: python notify.py
