@@ -72,7 +72,7 @@ def send_message_to_slack(channel_id, message):
 
 
 # Qiitaの記事をSlackに通知する関数
-def notify_articles_to_slack(channel_id, api_token, tag='生成AI'):
+def notify_articles_to_slack(channel_id, api_token, tag='AI'):
     articles = fetch_qiita_articles(tag, api_token)
     if articles:
         for article in articles:
@@ -85,7 +85,7 @@ def notify_articles_to_slack(channel_id, api_token, tag='生成AI'):
 
 
 # 毎日8:30に実行
-schedule.every().day.at("04:10").do(lambda: notify_articles_to_slack(CHANNEL_ID, API_TOKEN))
+schedule.every().day.at("04:17").do(lambda: notify_articles_to_slack(CHANNEL_ID, API_TOKEN))
 
 
 while True:
