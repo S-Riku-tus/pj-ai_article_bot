@@ -2,7 +2,7 @@ name: Qiita Slack Notifier
 
 on:
   schedule:
-    - cron: "17 19 * * *"  # 毎日 08:30 JST (UTC の 23:30)
+    - cron: "30 19 * * *"  # 毎日 08:30 JST (UTC の 23:30)
 
 jobs:
   notify:
@@ -17,10 +17,10 @@ jobs:
           python-version: "3.9"
 
       - name: 依存関係をインストール
-        run: pip install slack-sdk requests
+        run: pip install slack-sdk requests schedule
 
       - name: Qiita 通知スクリプトを実行
         env:
           SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
-          CHANNEL_ID: "#最新記事タイムライン"  # ここを適切なチャンネルに変更
+          CHANNEL_ID: ${{ secrets.SLACK_CHANNEL }}
         run: python bot.py
