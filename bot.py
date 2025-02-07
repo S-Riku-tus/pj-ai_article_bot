@@ -85,7 +85,7 @@ def notify_articles_to_slack(channel_id, api_token, tag='生成AI'):
 
 
 # 毎日8:30に実行
-schedule.every().day.at("08:30").do(lambda: notify_articles_to_slack(CHANNEL_ID, API_TOKEN))
+schedule.every().day.at("04:10").do(lambda: notify_articles_to_slack(CHANNEL_ID, API_TOKEN))
 
 
 while True:
