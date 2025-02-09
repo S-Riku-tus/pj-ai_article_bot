@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# # .envファイルからトークンとIDを取得
+# # (デバッグ用).envファイルからトークンとIDを取得
 # SLACK_TOKEN = os.environ.get("SLACK_TOKEN")
 # SLACK_CHANNEL = os.environ.get("SLACK_CHANNEL")
 # API_TOKEN = os.environ.get("API_TOKEN")
@@ -60,13 +60,9 @@ def notify_articles_to_slack():
         print("No articles found.")
 
 
-# # 毎日8:30に実行
+# # デバッグ用
 # schedule.every().day.at("13:50").do(lambda: notify_articles_to_slack(SLACK_CHANNEL, API_TOKEN))
 
-
-# while True:
-#     schedule.run_pending()
-#     time.sleep(1)
 
 # 🔹 スクリプト実行時に1回だけ実行
 notify_articles_to_slack()
