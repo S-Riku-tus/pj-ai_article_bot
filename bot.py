@@ -13,6 +13,11 @@ SLACK_TOKEN = os.environ.get("SLACK_TOKEN")
 SLACK_CHANNEL = os.environ.get("SLACK_CHANNEL")
 API_TOKEN = os.environ.get("API_TOKEN")
 
+# GitHub Actions の環境変数から取得
+SLACK_TOKEN = os.getenv("SLACK_TOKEN")
+SLACK_CHANNEL = os.getenv("SLACK_CHANNEL")
+API_TOKEN = os.getenv("API_TOKEN")
+
 # トークンとIDが設定されているか確認
 if not SLACK_TOKEN or not SLACK_CHANNEL or not API_TOKEN:
     raise ValueError("SLACK_TOKEN, SLACK_CHANNEL, and API_TOKEN environment variables must be set.")
@@ -78,14 +83,14 @@ def notify_articles_to_slack(channel_id, api_token, tag='AI'):
         for article in articles:
             title = article['title']
             url = article['url']
-            message = f"🔍 新しい記事があります: {title}\n🔗 {url}"
+            message = f"🔍 新しい記事があります: {title}\n📝 **今日の注目タグ: {tag}**\n🔗 {url}"
             send_message_to_slack(channel_id, message)
     else:
         print("No articles found.")
 
 
 # 毎日8:30に実行
-schedule.every().day.at("04:50").do(lambda: notify_articles_to_slack(SLACK_CHANNEL, API_TOKEN))
+schedule.every().day.at("13:35").do(lambda: notify_articles_to_slack(SLACK_CHANNEL, API_TOKEN))
 
 
 while True:
