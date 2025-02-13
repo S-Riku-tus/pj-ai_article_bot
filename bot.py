@@ -82,7 +82,8 @@ def send_message_to_slack(channel_id, title, url, description, likes, thread_ts=
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"📌 *タイトル : * <{url}|{title}>\n"
+                "text": f"📌 *タイトル : * {title}\n"
+                        f"🔗 *URL : * {url}\n"
                         f"👍 *LGTM数 : * {likes}\n"
                         f"📝 *概要 : * \n{description}...\n"
             }
