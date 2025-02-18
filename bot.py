@@ -8,46 +8,50 @@ import schedule
 import time
 from dotenv import load_dotenv
 
+# .env の読み込み
 load_dotenv()
 
+# 環境変数の取得
 TAGS = os.getenv("TAGS", "生成AI").split(",")
-
-# GitHub Actions の環境変数から取得
 SLACK_TOKEN = os.getenv("SLACK_TOKEN")
-SLACK_CHANNEL = os.getenv("SLACK_CHANNEL")
 API_TOKEN = os.getenv("API_TOKEN")
+SLACK_CHANNELS = os.getenv("SLACK_CHANNELS", "")
 
-# トークンの確認
-if not SLACK_TOKEN or not SLACK_CHANNEL or not API_TOKEN:
+# 環境変数のバリデーション
+if not SLACK_TOKEN or not API_TOKEN:
     raise ValueError("SLACK_TOKEN, SLACK_CHANNEL, and API_TOKEN environment variables must be set.")
+
+# タグごとのチャンネルIDマッピングを作成
+TAG_CHANNEL_MAP = {}
+if SLACK_CHANNELS:
+    pairs = SLACK_CHANNELS.split(",")
+    for pair in pairs:
+        tag, channel_id = pair.split(":")
+        TAG_CHANNEL_MAP[tag.strip()] = channel_id.strip()
+
+# Slack クライアント
+client = WebClient(token=SLACK_TOKEN)
 
 
 # HTMLタグ & Markdownの整形関数
 def clean_text(markdown_text):
     """QiitaのMarkdownをSlack用に整形"""
-
-    # Qiitaのカスタムブロックのラベル（:::note warn など）を削除し、内容は保持
     markdown_text = re.sub(r":::\s*\w+\s*\n", "", markdown_text, flags=re.DOTALL)
-    markdown_text = re.sub(r":::", "", markdown_text)  # 閉じタグの削除
+    markdown_text = re.sub(r":::", "", markdown_text)
 
-    # HTMLタグを除去（BeautifulSoupを使用）
+    # HTMLタグを除去
     soup = BeautifulSoup(markdown_text, "html.parser")
     text = soup.get_text()
 
-    # Markdownの余計な記号を削除
-    text = re.sub(r"^#+\s*(.*)", r"[*\1*]", text, flags=re.MULTILINE)  # 見出し（# 1. → 1.）
-    text = re.sub(r"\*\*(.*?)\*\*", r"*\1*", text)  # 強調（**bold** → bold）
-    text = re.sub(r":メモ:", "", text)  # `:メモ:` の削除
-    text = re.sub(r"^\s*[-*]\s+", "• ", text, flags=re.MULTILINE)  # 残ったHTMLタグの削除（<dl>, <dt>など）
+    # Markdownの整形
+    text = re.sub(r"^#+\s*(.*)", r"[*\1*]", text, flags=re.MULTILINE)  # 見出し
+    text = re.sub(r"\*\*(.*?)\*\*", r"*\1*", text)  # 太字
+    text = re.sub(r"\n{2,}", "\n", text)  # 改行調整
 
-    # 余計な改行を整理
-    text = re.sub(r"\n{2,}", "\n", text)  # 2つ以上の改行を1つに統一
-
-    # 最初の200文字のみ取得
-    return text[:200]
+    return text[:200]  # 200文字以内に制限
 
 
-# Qiitaから最新3つの記事を取得する関数
+# Qiita API から記事を取得
 def fetch_qiita_articles(tags, qiita_api_token=API_TOKEN):
     """複数のタグに対応し、各タグごとに最新記事を取得"""
     url = 'https://qiita.com/api/v2/items'
@@ -77,11 +81,7 @@ def fetch_qiita_articles(tags, qiita_api_token=API_TOKEN):
     return all_articles  # { "生成AI": [...], "Python": [...] }
 
 
-
-# Slackにメッセージを送信する関数
-client = WebClient(token=SLACK_TOKEN)
-
-
+# Slack にメッセージを送信
 def send_message_to_slack(channel_id, title, url, description, likes, thread_ts=None):
     """Slackにメッセージを送信（スレッド対応）"""
     blocks = [
@@ -89,10 +89,10 @@ def send_message_to_slack(channel_id, title, url, description, likes, thread_ts=
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"📌 *タイトル : * {title}\n"
-                        f"🔗 *URL : * {url}\n"
-                        f"👍 *LGTM数 : * {likes}\n"
-                        f"📝 *概要 : * \n{description}...\n"
+                "text": f"📌 *タイトル :* {title}\n"
+                        f"🔗 *URL :* {url}\n"
+                        f"👍 *LGTM数 :* {likes}\n"
+                        f"📝 *概要 :* \n{description}...\n"
             }
         }
     ]
@@ -101,40 +101,49 @@ def send_message_to_slack(channel_id, title, url, description, likes, thread_ts=
         response = client.chat_postMessage(
             channel=channel_id,
             blocks=blocks,
-            thread_ts=thread_ts  # スレッドの親メッセージがある場合に適用
+            thread_ts=thread_ts
         )
         print(f"Message sent: {response['message']['ts']}")
     except SlackApiError as e:
         print(f"Error sending message: {e.response['error']}")
 
 
+# Qiita記事をSlackに通知
 def notify_articles_to_slack():
-    """複数のタグのQiita記事を取得し、Slackに投稿（タグごとにスレッド作成）"""
+    """複数のタグのQiita記事を取得し、対応するSlackチャンネルに投稿"""
     articles_by_tag = fetch_qiita_articles(TAGS)
 
+    print(articles_by_tag.keys())
     for tag, articles in articles_by_tag.items():
         if not articles:
             print(f"No articles found for tag: {tag}")
             continue
 
-        # タグごとの親メッセージ（スレッドの最初の投稿）
-        parent_message = client.chat_postMessage(
-            channel=SLACK_CHANNEL,
-            text=f"📢 *最新のQiita記事まとめ - #{tag}*"
-        )
-        thread_ts = parent_message["ts"]
+        # タグごとのSlackチャンネルID
+        slack_channel_id = TAG_CHANNEL_MAP.get(tag)
 
-        # 各記事をスレッド内に投稿
-        for article in articles:
-            send_message_to_slack(
-                channel_id=SLACK_CHANNEL,
-                title=article["title"],
-                url=article["url"],
-                description=article["description"],
-                likes=article["likes"],
-                thread_ts=thread_ts
+        # タグごとの親メッセージ
+        try:
+            parent_message = client.chat_postMessage(
+                channel=slack_channel_id,
+                text=f"📢 *最新のQiita記事まとめ - #{tag}*"
             )
+            thread_ts = parent_message["ts"]
+
+            # 各記事をスレッド内に投稿
+            for article in articles:
+                send_message_to_slack(
+                    channel_id=slack_channel_id,
+                    title=article["title"],
+                    url=article["url"],
+                    description=article["description"],
+                    likes=article["likes"],
+                    thread_ts=thread_ts
+                )
+
+        except SlackApiError as e:
+            print(f"Error sending parent message for {tag} in {slack_channel_id}: {e.response['error']}")
 
 
-# スクリプト実行時に1回だけ実行
+# スクリプト実行
 notify_articles_to_slack()
