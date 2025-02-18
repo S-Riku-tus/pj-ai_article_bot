@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+TAGS = os.getenv("TAGS", "生成AI").split(",")
+
 # GitHub Actions の環境変数から取得
 SLACK_TOKEN = os.getenv("SLACK_TOKEN")
 SLACK_CHANNEL = os.getenv("SLACK_CHANNEL")
@@ -46,29 +48,34 @@ def clean_text(markdown_text):
 
 
 # Qiitaから最新3つの記事を取得する関数
-def fetch_qiita_articles(tag='生成AI', qiita_api_token=API_TOKEN):
+def fetch_qiita_articles(tags, qiita_api_token=API_TOKEN):
+    """複数のタグに対応し、各タグごとに最新記事を取得"""
     url = 'https://qiita.com/api/v2/items'
     headers = {'Authorization': f'Bearer {qiita_api_token}'}
-    params = {'query': f'tag:{tag}', 'page': 1, 'per_page': 3, 'sort': 'created'}
+    all_articles = {}
 
-    response = requests.get(url, headers=headers, params=params)
-    if response.status_code == 200:
-        articles = response.json()
+    for tag in tags:
+        params = {'query': f'tag:{tag}', 'page': 1, 'per_page': 3, 'sort': 'created'}
+        response = requests.get(url, headers=headers, params=params)
 
-        # 記事情報を加工
-        formatted_articles = []
-        for article in articles:
-            formatted_articles.append({
-                "title": article["title"],
-                "url": article["url"],
-                "description": clean_text(article["body"]),  # Markdownを整形
-                "likes": article["likes_count"],
-            })
+        if response.status_code == 200:
+            articles = response.json()
+            formatted_articles = [
+                {
+                    "title": article["title"],
+                    "url": article["url"],
+                    "description": clean_text(article["body"]),
+                    "likes": article["likes_count"]
+                }
+                for article in articles
+            ]
+            all_articles[tag] = formatted_articles
+        else:
+            print(f"Error fetching articles for tag {tag}: {response.status_code}")
+            all_articles[tag] = []
 
-        return formatted_articles
-    else:
-        print(f"Error fetching Qiita articles: {response.status_code}")
-        return []
+    return all_articles  # { "生成AI": [...], "Python": [...] }
+
 
 
 # Slackにメッセージを送信する関数
@@ -101,34 +108,32 @@ def send_message_to_slack(channel_id, title, url, description, likes, thread_ts=
         print(f"Error sending message: {e.response['error']}")
 
 
-# Qiitaの記事をSlackに通知する関数
 def notify_articles_to_slack():
-    """Qiitaの記事を取得し、Slackに投稿（スレッド形式）"""
-    articles = fetch_qiita_articles()
+    """複数のタグのQiita記事を取得し、Slackに投稿（タグごとにスレッド作成）"""
+    articles_by_tag = fetch_qiita_articles(TAGS)
 
-    if not articles:
-        print("No articles found.")
-        return
+    for tag, articles in articles_by_tag.items():
+        if not articles:
+            print(f"No articles found for tag: {tag}")
+            continue
 
-    # 親メッセージ（スレッドの最初の投稿）
-    parent_message = client.chat_postMessage(
-        channel=SLACK_CHANNEL,
-        text="📢 *最新のQiita記事まとめ*",
-    )
-
-    # 親メッセージの `ts`（スレッドID）を取得
-    thread_ts = parent_message["ts"]
-
-    # 各記事をスレッド内に投稿
-    for article in articles:
-        send_message_to_slack(
-            channel_id=SLACK_CHANNEL,
-            title=article["title"],
-            url=article["url"],
-            description=article["description"],
-            likes=article["likes"],
-            thread_ts=thread_ts  # スレッドとして投稿
+        # タグごとの親メッセージ（スレッドの最初の投稿）
+        parent_message = client.chat_postMessage(
+            channel=SLACK_CHANNEL,
+            text=f"📢 *最新のQiita記事まとめ - #{tag}*"
         )
+        thread_ts = parent_message["ts"]
+
+        # 各記事をスレッド内に投稿
+        for article in articles:
+            send_message_to_slack(
+                channel_id=SLACK_CHANNEL,
+                title=article["title"],
+                url=article["url"],
+                description=article["description"],
+                likes=article["likes"],
+                thread_ts=thread_ts
+            )
 
 
 # スクリプト実行時に1回だけ実行
