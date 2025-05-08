@@ -5,6 +5,7 @@ import re
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from dotenv import load_dotenv
+from notion_integration import create_or_update_notion_summary, get_existing_notion_article_urls
 
 # .env の読み込み
 load_dotenv()
@@ -26,6 +27,7 @@ TAGS = config["tags"]
 SLACK_TOKEN = os.getenv("SLACK_TOKEN")
 API_TOKEN = os.getenv("API_TOKEN")
 SLACK_CHANNELS = os.getenv("SLACK_CHANNELS", "")
+ENABLE_NOTION = os.getenv("ENABLE_NOTION", "false").lower() == "true"
 
 if not SLACK_TOKEN or not API_TOKEN:
     raise ValueError("SLACK_TOKEN and API_TOKEN environment variables must be set.")
@@ -137,6 +139,35 @@ def get_latest_parent_article_urls(channel_id):
         print(f"Error fetching latest parent message: {e.response['error']}")
         return set()
 
+# 未読のQiita記事をNotionにまとめる関数
+def save_unread_articles_to_notion(articles_by_tag):
+    """
+    Slackに通知されたQiita記事のうち、未読の記事をNotionにまとめる
+    
+    Args:
+        articles_by_tag (dict): タグごとの記事一覧
+    """
+    if not ENABLE_NOTION:
+        print("Notion連携が無効になっています。ENABLE_NOTION=true に設定してください。")
+        return False
+    
+    try:
+        # Notionの既存ページから記事URLを取得
+        existing_article_urls = get_existing_notion_article_urls()
+        
+        # 記事をNotionにまとめる
+        result = create_or_update_notion_summary(articles_by_tag, existing_article_urls)
+        
+        if result:
+            print("✅ 未読記事をNotionにまとめました。")
+        else:
+            print("❌ 未読記事のNotion保存に失敗しました。")
+            
+        return result
+    except Exception as e:
+        print(f"❌ Notion連携中にエラーが発生しました: {e}")
+        return False
+
 # Qiita記事をSlackに通知する関数（重複チェック＆通知付き）
 def notify_articles_to_slack():
     articles_by_tag = fetch_qiita_articles(TAGS)
@@ -196,6 +227,9 @@ def notify_articles_to_slack():
 
         except SlackApiError as e:
             print(f"Error sending parent message for {tag} in {slack_channel_id}: {e.response['error']}")
+    
+    # Slackに通知した記事をNotionにまとめる
+    save_unread_articles_to_notion(articles_by_tag)
 
 if __name__ == "__main__":
     notify_articles_to_slack()
