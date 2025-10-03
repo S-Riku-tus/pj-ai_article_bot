@@ -3,7 +3,7 @@ Qiita記事通知Bot - メイン実行ファイル
 ワークフローのみを記述し、詳細な処理は各サービスに委譲
 """
 from src.config import Config
-from src.services import QiitaService, AIService, SlackService, NotionService
+from src.services import QiitaService, SlackService, NotionService
 
 
 def main():
@@ -14,8 +14,7 @@ def main():
         
         # サービスの初期化
         qiita_service = QiitaService(config)
-        ai_service = AIService(config)
-        slack_service = SlackService(config, ai_service)
+        slack_service = SlackService(config)
         notion_service = NotionService(config)
         
         # メインワークフロー
