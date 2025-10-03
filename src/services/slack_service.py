@@ -10,15 +10,11 @@ from slack_sdk.errors import SlackApiError
 
 from ..config.settings import Config
 from ..utils.formatters import format_latex_for_slack
-from .ai_service import AIService
-
-
 class SlackService:
     """Slack通知サービス"""
     
-    def __init__(self, config: Config, ai_service: AIService):
+    def __init__(self, config: Config):
         self.config = config
-        self.ai_service = ai_service
         self.tag_channel_map = config.tag_channel_map
         self.client = WebClient(token=config.slack_token)
     
@@ -89,46 +85,22 @@ class SlackService:
     
     def _send_message_to_slack(self, channel_id: str, article: Dict[str, Any], thread_ts: Optional[str] = None) -> Optional[str]:
         """Slack にメッセージを送信する"""
-        # 記事の翻訳・要約を取得
-        try:
-            translation = self.ai_service.translate_and_summarize_article(article)
-            
-            # text フィールドも付与（フォールバック用）
-            text_fallback = f"{translation['translated_title']} - {article['url']}"
-            
-            # 数式表記のクリーニング（LaTeX形式の数式を適切に表示）
-            title = format_latex_for_slack(article['title'])
-            translated_title = format_latex_for_slack(translation['translated_title'])
-            translated_summary = format_latex_for_slack(translation['translated_summary'])
-            key_points = format_latex_for_slack(translation['key_points'])
-            
-            # Slack用に改行とフォーマットを改善したブロック
-            blocks = [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"*【タイトル】*\n{translated_title}\n\n*【原題】*\n{title}\n\n*【著者】*\n{article['user']}\n\n*【LGTM数】*\n{article['likes']}\n\n*【URL】*\n{article['url']}\n\n*【重要なポイント】*\n{key_points}\n\n*【要約】*\n{translated_summary}"
-                    }
+        # シンプルなフォーマット：タグ、タイトル、URLのみ
+        text_fallback = f"{article['title']} - {article['url']}"
+        
+        # 数式表記のクリーニング（LaTeX形式の数式を適切に表示）
+        title = format_latex_for_slack(article['title'])
+        
+        # シンプルなブロック形式
+        blocks = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*【タグ】* #{article['tag']}\n\n*【タイトル】*\n{title}\n\n*【URL】*\n{article['url']}"
                 }
-            ]
-        except Exception as e:
-            print(f"Error preparing message: {e}")
-            # エラーが発生した場合は元の記事情報のみを表示
-            text_fallback = f"{article['title']} - {article['url']}"
-            
-            title = format_latex_for_slack(article['title'])
-            description = format_latex_for_slack(article['description'])
-            
-            blocks = [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"*【タイトル】*\n{title}\n\n*【著者】*\n{article['user']}\n\n*【LGTM数】*\n{article['likes']}\n\n*【URL】*\n{article['url']}\n\n*【概要】*\n{description}..."
-                    }
-                }
-            ]
+            }
+        ]
         
         try:
             response = self.client.chat_postMessage(

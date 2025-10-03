@@ -1,7 +1,7 @@
 # Qiita Slack Bot
 
 このプロジェクトは、Qiitaから特定のタグの最新記事を定期的にSlackに通知するボットです。
-優先順位の高いタグから最も価値のある記事を選び、AI（Gemini）を使用して日本語に翻訳・要約します。
+優先順位の高いタグから最も価値のある記事を選び、シンプルな形式で通知します。
 また、通知された記事を自動的にNotionにまとめる機能も追加されています。
 
 ## インストール
@@ -27,8 +27,6 @@ API_TOKEN=your-qiita-api-token
 # 通知先チャンネル（必須）
 SLACK_CHANNELS=生成AI:C12345678,機械学習:C87654321
 
-# Gemini APIキー（AI翻訳・要約機能用）
-GEMINI_API_KEY=your-gemini-api-key
 
 # Notion連携のための設定（オプション）
 ENABLE_NOTION=true
@@ -51,7 +49,7 @@ NOTION_PAGE_ID=your_notion_parent_page_id
 python main.py
 ```
 
-実行すると、設定したタグの最新Qiita記事を優先順位に従ってSlackに通知します。記事のタイトル、要約が日本語に翻訳され、重要なポイントが提供されます。同時にNotionページに未読記事をまとめます。
+実行すると、設定したタグの最新Qiita記事を優先順位に従ってSlackに通知します。記事のタグ、タイトル、URLがシンプルな形式で通知されます。同時にNotionページに未読記事をまとめます。
 
 ### タグの優先順位
 
@@ -67,10 +65,6 @@ configファイル内のタグの順序が優先順位を表します。例え�
 ボットは各タグから最新の記事を取得し、優先度の高いものから順に通知します。
 
 ### APIキーの設定
-
-#### Gemini API
-1. [Google AI Studio](https://makersuite.google.com/app/apikey)からAPIキーを取得
-2. 取得したAPIキーを`.env`ファイルの`GEMINI_API_KEY`に設定
 
 #### Qiita API
 1. [Qiita API](https://qiita.com/api/v2/docs)からアクセストークンを取得

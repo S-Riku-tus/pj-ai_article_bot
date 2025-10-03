@@ -39,7 +39,6 @@ class Config:
         """環境変数を読み込む"""
         self.slack_token = os.getenv("SLACK_TOKEN")
         self.qiita_api_token = os.getenv("API_TOKEN")  # Qiita APIトークン
-        self.gemini_api_key = os.getenv("GEMINI_API_KEY")
         
         # Slackチャンネル設定
         slack_channels = os.getenv("SLACK_CHANNELS", "")
@@ -84,12 +83,8 @@ class Config:
             if not self.notion_page_id:
                 print("Warning: ENABLE_NOTION=true but NOTION_PAGE_ID is not set.")
         
-        # Gemini API設定の診断
-        if self.gemini_api_key:
-            print(f"GEMINI_API_KEY: '{self.gemini_api_key[:5]}...(省略)...'")
-        else:
-            print("GEMINI_API_KEY: Not set")
-            print("Warning: Gemini API key is not set. Translation features will be disabled.")
+        # 設定の診断
+        print("Configuration loaded successfully.")
     
     def update_tags(self, new_tags: List[str]) -> List[str]:
         """タグを更新する"""
@@ -102,11 +97,6 @@ class Config:
         
         return self.tags
     
-    def get_ai_service_config(self) -> dict:
-        """AIサービス設定を取得"""
-        return {
-            "gemini_api_key": self.gemini_api_key
-        }
     
     def get_notion_config(self) -> dict:
         """Notion設定を取得"""
