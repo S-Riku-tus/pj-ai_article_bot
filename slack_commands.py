@@ -1,15 +1,10 @@
 from flask import Flask, request, jsonify
-import json
-import os
-from dotenv import load_dotenv
-from slack_sdk import WebClient
 import subprocess
-
-# .env を読み込む
-load_dotenv()
+from src.config import Config
 
 app = Flask(__name__)
-client = WebClient(token=os.getenv("SLACK_TOKEN"))
+config = Config()
+client = WebClient(token=config.slack_token)
 CONFIG_FILE = "config.json"
 
 
@@ -27,15 +22,11 @@ def commit_and_push_changes():
 
 
 def load_config():
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {"tags": ["生成AI"]}
+    return {"tags": config.tags}
 
 
 def save_config(data):
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+    config.update_tags(data["tags"])
 
 
 @app.route("/slack/set_tags", methods=["POST"])
