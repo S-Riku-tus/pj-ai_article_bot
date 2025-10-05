@@ -91,13 +91,13 @@ class SlackService:
         # 数式表記のクリーニング（LaTeX形式の数式を適切に表示）
         title = format_latex_for_slack(article['title'])
         
-        # シンプルなブロック形式
+        # シンプルなブロック形式（タイトルを最初に表示）
         blocks = [
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"*【タグ】* #{article['tag']}\n\n*【タイトル】*\n{title}\n\n*【URL】*\n{article['url']}"
+                    "text": f"*【タイトル】*\n{title}\n\n*【タグ】* #{article['tag']}\n\n*【URL】*\n{article['url']}"
                 }
             }
         ]
