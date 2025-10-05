@@ -43,11 +43,6 @@ class Config:
         # Slackチャンネル設定
         slack_channels = os.getenv("SLACK_CHANNELS", "")
         self.tag_channel_map = self._parse_slack_channels(slack_channels)
-        
-        # Notion統合設定
-        self.enable_notion = os.getenv("ENABLE_NOTION", "false").lower() == "true"
-        self.notion_token = os.getenv("NOTION_TOKEN")
-        self.notion_page_id = os.getenv("NOTION_PAGE_ID")
     
     def _parse_slack_channels(self, slack_channels: str) -> Dict[str, str]:
         """Slackチャンネル設定を解析してタグごとのチャンネルIDマッピングを取得"""
@@ -76,13 +71,6 @@ class Config:
             print("Warning: No valid Slack channel mapping found. "
                   "Please set SLACK_CHANNELS environment variable.")
         
-        # Notion設定の診断
-        if self.enable_notion:
-            if not self.notion_token:
-                print("Warning: ENABLE_NOTION=true but NOTION_TOKEN is not set.")
-            if not self.notion_page_id:
-                print("Warning: ENABLE_NOTION=true but NOTION_PAGE_ID is not set.")
-        
         # 設定の診断
         print("Configuration loaded successfully.")
     
@@ -96,12 +84,3 @@ class Config:
             json.dump(config, f, ensure_ascii=False, indent=4)
         
         return self.tags
-    
-    
-    def get_notion_config(self) -> dict:
-        """Notion設定を取得"""
-        return {
-            "enable_notion": self.enable_notion,
-            "notion_token": self.notion_token,
-            "notion_page_id": self.notion_page_id
-        }
