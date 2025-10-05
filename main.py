@@ -3,7 +3,7 @@ Qiita記事通知Bot - メイン実行ファイル
 ワークフローのみを記述し、詳細な処理は各サービスに委譲
 """
 from src.config import Config
-from src.services import QiitaService, SlackService, NotionService
+from src.services import QiitaService, SlackService
 
 
 def main():
@@ -15,7 +15,6 @@ def main():
         # サービスの初期化
         qiita_service = QiitaService(config)
         slack_service = SlackService(config)
-        notion_service = NotionService(config)
         
         # メインワークフロー
         print("🔍 Qiita記事を取得中...")
@@ -42,17 +41,6 @@ def main():
             print("✅ Slack通知が完了しました。")
         else:
             print("❌ Slack通知に失敗しました。")
-        
-        # Notionに記事を保存
-        if config.enable_notion:
-            print("📝 Notionに記事を保存中...")
-            existing_urls = notion_service.get_existing_notion_article_urls()
-            notion_success = notion_service.create_or_update_notion_summary(selected_articles, existing_urls)
-            
-            if notion_success:
-                print("✅ Notion保存が完了しました。")
-            else:
-                print("❌ Notion保存に失敗しました。")
             
     except Exception as e:
         print(f"❌ エラーが発生しました: {e}")
