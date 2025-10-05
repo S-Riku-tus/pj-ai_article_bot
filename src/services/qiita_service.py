@@ -27,7 +27,7 @@ class QiitaService:
                 params = {
                     'query': f'tag:{tag}',
                     'page': 1,
-                    'per_page': 3,  # 各タグで最大3件取得
+                    'per_page': 1,  # 各タグで最新の1件のみ取得
                     'sort': 'created'
                 }
                 
@@ -76,10 +76,9 @@ class QiitaService:
         
         for tag in self.tag_priority:
             if tag in articles_by_tag and articles_by_tag[tag]:
-                # 各タグから最大3件の記事を選択（LGTM数でソート）
+                # 各タグから最新の1件の記事を選択
                 articles = articles_by_tag[tag]
-                articles.sort(key=lambda x: x["likes"], reverse=True)
-                selected_articles[tag] = articles[:3]  # 上位3件を選択
+                selected_articles[tag] = articles[:1]  # 最新の1件を選択
         
         return selected_articles
     
